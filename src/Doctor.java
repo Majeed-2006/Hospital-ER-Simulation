@@ -21,8 +21,6 @@ public class Doctor extends Thread {
 
                 // Wait at most 3 seconds for a free treatment room
                 if (treatmentRooms.tryAcquire(ROOM_TIMEOUT_SECONDS)) {
-                    // Room secured, so the patient's seat can now be freed
-                    waitingRoom.releaseSeat();
                     Printer.print(getName() + " is treating " + p.name + ".");
 
                     Thread.sleep(TREATMENT_TIME_MS);
