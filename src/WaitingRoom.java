@@ -13,17 +13,8 @@ public class WaitingRoom {
 
     // Patient (producer): sleeps if there is no empty seat
     public void enter(Patient p) throws InterruptedException {
-        if (!emptySeats.tryAcquire(0)) { 
-            Printer.print("The waiting room is full.");
-            Printer.print(p.name + " is waiting outside for an available seat.");
-            emptySeats.acquire();
-        }
-        queueLock.acquire();
-        queue.add(p);
-        Printer.print(p.name + " entered the waiting room.");
-        queueLock.release();
-        waitingPatients.release();
-    }
+        seatAndQueue(p);
+}
 
     // Doctor (consumer): sleeps if there are no patients
     public Patient take() throws InterruptedException {
@@ -34,17 +25,20 @@ public class WaitingRoom {
         emptySeats.release();
         return p;
     }
-    
-// Called by the doctor ONLY after successfully acquiring a treatment room to free up a seat.
-    public void releaseSeat() {
-        emptySeats.release();
+    private void seatAndQueue(Patient p) throws InterruptedException {
+    if (!emptySeats.tryAcquire(0)) {
+        Printer.print("The waiting room is full.\n" + p.name + " is waiting outside for an available seat.");
+        emptySeats.acquire();
     }
+    queueLock.acquire();
+    queue.add(p);
+    Printer.print(p.name + " entered the waiting room.");
+    queueLock.release();
+    waitingPatients.release();
+}
 
     // Called by the doctor if acquiring a treatment room times out, returning the patient to the queue.
     public void returnPatient(Patient p) throws InterruptedException {
-        queueLock.acquire();
-        queue.add(p);
-        queueLock.release();
-        waitingPatients.release();
+        seatAndQueue(p);
     }
 }
