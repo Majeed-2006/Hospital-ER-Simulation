@@ -1,9 +1,13 @@
+import java.util.Random;
+
 public class Doctor extends Thread {
     private final WaitingRoom waitingRoom;
     private final TreatmentRooms treatmentRooms;
+    private final Random random = new Random();
 
     private static final int ROOM_TIMEOUT_SECONDS = 3;
-    private static final int TREATMENT_TIME_MS = 2000;
+    private static final int MIN_TREATMENT_MS = 1000;
+    private static final int MAX_TREATMENT_MS = 4000;
 
     public Doctor(String name, WaitingRoom waitingRoom, TreatmentRooms treatmentRooms) {
         super(name);
@@ -15,24 +19,37 @@ public class Doctor extends Thread {
     public void run() {
         try {
             while (!isInterrupted()) {
-                // Sleeps here if no patients are waiting
+              
                 Patient p = waitingRoom.take();
-                Printer.print(getName() + " took " + p.name + " from the waiting room.");
+                Printer.print(getName() + " is assigned to " + p.name + ".");
 
-                // Wait at most 3 seconds for a free treatment room
+              
+                Printer.print(getName() + " is trying to acquire a treatment room.");
                 if (treatmentRooms.tryAcquire(ROOM_TIMEOUT_SECONDS)) {
-                    Printer.print(getName() + " is treating " + p.name + ".");
+                    try {
+                        Printer.print(getName() + " acquired a treatment room.");
+                        Printer.print(getName() + " begins treating " + p.name + ".");
 
-                    Thread.sleep(TREATMENT_TIME_MS);
+                    
+                        Thread.sleep(MIN_TREATMENT_MS
+                                + random.nextInt(MAX_TREATMENT_MS - MIN_TREATMENT_MS + 1));
 
-                    Printer.print(getName() + " finished treating " + p.name + ".");
-                    treatmentRooms.release();
+                        Printer.print(getName() + " finished treating " + p.name + ".");
+                    } finally {
+                    
+                        Printer.print(getName() + " released the treatment room.");
+                        treatmentRooms.release();
+                    }
+                    
+                    p.finishTreatment();
                 } else {
-                    // Timeout: put the patient back in the queue
-                    Printer.print(getName() + " found no free treatment room for "
-                            + p.name + ". Returning the patient to the waiting room.");
+                    
+                    Printer.print(getName() + " could not acquire a treatment room in time for "
+                            + p.name + ".");
                     waitingRoom.returnPatient(p);
                 }
+
+                Printer.print(getName() + " is now available.");
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
